@@ -1,0 +1,92 @@
+<html>
+	<head>
+		<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+		<script src="utils.js"></script>
+		<script src="rect.js"></script>
+	</head>
+	
+	<body>
+		
+		<script>
+				
+			var Eqn = function(canvas){
+				console.log("canvas "+canvas);
+				this.canvas = canvas;
+				this.context = this.canvas.getContext('2d');
+				this.imageObj = null;
+				this.imgData = null;
+				this.mainRect = null;
+				this.data = [ ];
+			};
+			
+			Eqn.BLACK = 0.5;
+			
+			Eqn.SIZE0 = 64;
+			
+			$(document).ready(function(){
+				var eqn = new Eqn(document.getElementById('mycanvas'));
+				eqn.init();
+			});
+			
+			Eqn.prototype.init = function(){
+				this.loadImage();
+			};
+			
+			Eqn.prototype.imageLoaded = function(){
+				this.context.drawImage(this.imageObj, 0, 0);
+				this.imgData = ( this.context.getImageData(0, 0, Eqn.SIZE0, Eqn.SIZE0) ).data;
+				this.getPixels();
+				console.log("new rect");
+				this.mainRect = new Rect(0, 0, Eqn.SIZE0, Eqn.SIZE0, this.data);
+			};
+			
+			Eqn.prototype.loadImage = function(){
+				this.imageObj = new Image();
+				this.imageObj.onload = $.proxy(this.imageLoaded, this);
+				this.imageObj.src = "img0.png";
+			};
+			
+			Eqn.prototype.getPixel = function(x, y){
+				var index, r, g, b, clr, alpha, black;
+				index = (x + y * Eqn.SIZE0) * 4;
+				r = this.imgData[index] / 255;
+				g = this.imgData[index + 1] / 255;
+				b = this.imgData[index + 2] / 255;
+				clr = (r + g + b) / 3;
+				alpha = this.imgData[index + 3] / 255;
+				if(alpha < 0.5){
+					black = false;
+				}
+				else{
+					if(clr < Eqn.BLACK){
+						black = true;
+					}
+					else{
+						black = false;
+					}
+				}
+				return black;
+			};
+			
+			Eqn.prototype.getPixels = function(){
+				for(i = 0; i <= Eqn.SIZE0 - 1; i++){
+					if(!this.data[i]){
+						this.data[i] = [ ];
+					}
+					for(j = 0; j <= Eqn.SIZE0 - 1; j++){
+						this.data[i][j] = this.getPixel(i, j);
+					}
+				}
+			};
+			
+				
+		</script>
+		
+		<canvas id="mycanvas" width="64" height="64"></canvas>
+
+	</body>
+</html>
+
+
+
+
