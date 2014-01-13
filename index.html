@@ -3,12 +3,15 @@
 		<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
 		<script src="utils.js"></script>
 		<script src="rect.js"></script>
+		<script src="matcher.js"></script>
 	</head>
 	
 	<body>
 		
 		<script>
-				
+			
+			var eqn, matcher;
+			
 			var Eqn = function(canvas){
 				console.log("canvas "+canvas);
 				this.canvas = canvas;
@@ -24,7 +27,8 @@
 			Eqn.SIZE0 = 64;
 			
 			$(document).ready(function(){
-				var eqn = new Eqn(document.getElementById('mycanvas'));
+				eqn = new Eqn(document.getElementById('mycanvas'));
+				matcher = new Matcher();
 				eqn.init();
 			});
 			
