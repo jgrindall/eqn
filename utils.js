@@ -20,23 +20,18 @@ Utils.findLast = function(a, search){
 	return -1;
 };
 
-Utils.getStrips = function(a, search){
-	var c, i, prevc = false, strips = [ ], s = [ ];
-	for(i = 0; i <= a.length - 1; i++){
-		c = (a[i] === search);
-		if(c){
-			if(!prevc){
-				s[0] = i;
-			}
-		}
-		else{
-			if(prevc){
-				s[1] = i - 1;
-				strips.push(s);
-				s = [ ];
-			}
-		}
-		prevc = c;
+Utils.fillConstant = function(val, num){
+	var r = [ ];
+	for(i = 1; i <= num; i++){
+		r.push(val);
 	}
-	return strips;
+	return r;
+};
+
+Utils.fillFrom = function(from, to){
+	var r = [ ];
+	for(i = from; i <= to; i++){
+		r.push(i);
+	}
+	return r;
 };

@@ -2,7 +2,9 @@ var Matcher = function(){
 	
 };
 
-Matcher.SIZES = [{w:4,h:4}, {w:4,h:8}];
+Matcher.TOLERANCE = 10;
+
+Matcher.SIZES = [ {w:5,h:5}, {w:5,h:9}, {w:8,h:8}, {w:8,h:3}  ];
 
 Matcher.prototype.match = function(w, h, data){
 	this.w = w;
@@ -10,33 +12,48 @@ Matcher.prototype.match = function(w, h, data){
 	this.data = data;
 	this.discreteData = [ ];
 	this.discretize();
-	var i, d, minD, minIndex, size;
+	var i, d, minD, minIndex, size, ratio, origRatio;
 	minD = Infinity;
+	origRatio = w/h;
 	minIndex = Infinity;
 	for(i = 0; i <= Matcher.KEYS.length-1;i++){
 		size = Matcher.SIZES [ Matcher.KEYS[i].size ];
-		d = this.getDistance(this.discreteData[Matcher.KEYS[i].size], Matcher.KEYS[i].data, size.w, size.h);
-		if(d < minD){
-			minD = d;
-			minIndex = i;
+		ratio = size.w / size.h;
+		if(ratio < 2 * origRatio && ratio > 0.5 * origRatio){
+			d = this.getDistance(this.discreteData[Matcher.KEYS[i].size], Matcher.KEYS[i].data, size.w, size.h);
+			if(d < minD){
+				minD = d;
+				minIndex = i;
+			}
 		}
 	}
-	return {symbol:Matcher.KEYS[minIndex].symbol, d:d};
+	if(minIndex <= Matcher.KEYS.length-1){
+		return {symbol:Matcher.KEYS[minIndex].symbol, d:minD};
+	}
+	else{
+		return {symbol:null, d:null};
+	}
 };
 
 Matcher.prototype.discretize = function(){
-	var i, j, k, dw, dh;
+	var k;
 	for(k = 0; k <= Matcher.SIZES.length-1; k++){
-		dw = Matcher.SIZES[k].w;
-		dh = Matcher.SIZES[k].h;
-		this.discreteData[k] = [ ];
-		for(i = 0; i <= dw; i++){
-			this.discreteData[k][i] = [ ];
-			for(j = 0; j <= dh - 1; j++){
-				this.discreteData[k][i][j] = this.getDiscretePoint(i, j, dw, dh);
-			}
-		}
+		this.discretizeK(k);
 	}	
+};	
+
+Matcher.prototype.discretizeK = function(k){
+	var i, j, dw, dh, r;
+	dw = Matcher.SIZES[k].w;
+	dh = Matcher.SIZES[k].h;
+	r = [ ];
+	for(i = 0; i <= dw - 1; i++){
+		r[i] = [ ];
+		for(j = 0; j <= dh - 1; j++){
+			r[i][j] = this.getDiscretePoint(i, j, dw, dh);
+		}
+	}
+	this.discreteData[k] = r;
 };	
 
 Matcher.prototype.getDistance = function(data0, data1, w, h){
@@ -100,5 +117,18 @@ Matcher.prototype.getOverlapArea = function(r1, r2){
 
 Matcher.D_WIDTH = 4;
 Matcher.D_HEIGHT = 4;
-Matcher.KEYS = [   {"size":0,"symbol":"a", data:[[0,1,1,1],[1,1,0,1],[1,1,1,0],[0,0,0,1] ]} , {"size":1,"symbol":"b", data:[[0,1,1,1,1,1,1,1],[0,0,0,0,0,1,0,1],[0,0,0,0,0,1,0,1],[0,0,0,0,0,1,1,1]  ]}  ];
 
+Matcher.KEYS = [
+
+	{"size":0,"symbol":"+", data:[[0,0,1,0,0],[0,0,1,0,0],[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0] ]}
+	,
+	{"size":1,"symbol":"-", data:[[0,0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0,0]]}
+	,
+	{"size":0,"symbol":"a", data:[[0,0,1,1,0],[0,1,0,1,1],[1,0,0,0,1],[1,0,0,1,0],[0,1,1,1,1] ]}
+	,
+	{"size":1,"symbol":"b", data:[[1,1,1,1,1,1,1,1,0],[0,0,0,0,0,0,1,0,1],[0,0,0,0,0,0,1,0,1],[0,0,0,0,0,0,1,0,1],[0,0,0,0,0,0,0,1,0]  ]}
+	,
+	{"size":2,"symbol":"a", data:[[0,0,0,0,1,1,1,0],[0,0,0,1,0,0,1,1],[0,0,1,0,0,0,0,1],[1,1,0,0,0,0,1,0],[1,0,0,1,1,1,0,0],[0,1,1,1,1,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1] ]}
+	,
+	{"size":3,"symbol":"-", data:[[0,1,0],[0,1,0],[0,1,0],[0,1,0],[0,1,0],[0,1,0],[0,1,0],[0,1,0] ]}
+];

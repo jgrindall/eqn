@@ -4,6 +4,7 @@
 		<script src="utils.js"></script>
 		<script src="rect.js"></script>
 		<script src="matcher.js"></script>
+		<script src="graph.js"></script>
 	</head>
 	
 	<body>
@@ -18,7 +19,6 @@
 				this.context = this.canvas.getContext('2d');
 				this.imageObj = null;
 				this.imgData = null;
-				this.mainRect = null;
 				this.data = [ ];
 			};
 			
@@ -40,8 +40,8 @@
 				this.context.drawImage(this.imageObj, 0, 0);
 				this.imgData = ( this.context.getImageData(0, 0, Eqn.SIZE0, Eqn.SIZE0) ).data;
 				this.getPixels();
-				console.log("new rect");
-				this.mainRect = new Rect(0, 0, Eqn.SIZE0, Eqn.SIZE0, this.data);
+				var bounds = {x:0, y:0, w:Eqn.SIZE0, h:Eqn.SIZE0};
+				new Canvas(bounds, this.data);
 			};
 			
 			Eqn.prototype.loadImage = function(){
