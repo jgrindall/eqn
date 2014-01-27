@@ -1,56 +1,60 @@
 var Graph = function(adj){
 	this.adj = adj;
 	this.num = adj.length;
-	this.temp = [ ];
-	this.components = [ ];
-	this.visited = Utils.fillConstant(false, this.num);
 };
 
 Graph.prototype.getNeighbours = function(i){
 	var r = [ ];
 	for(var j = 0; j<= this.num - 1;j++){
-		if(this.adj[i][j]){
+		if(i != j && this.adj[i][j]){
 			r.push(j);
 		}
 	}
 	return r;
 };
 
-Graph.prototype.countVisited = function(n){
-	var c = 0;
-	for(var i = 0;i <= n.length-1; i++){
-		if(this.visited[n[i]]){
-			c++;
+Graph.prototype.getNext = function(){
+	var i;
+	for(i = 0;i <= this.visited.length-1; i++){
+		if(!this.visited[i]){
+			return i;
 		}
 	}
-	return c;
+	return -1;
 };
 
-Graph.prototype.visit = function(i){
-	this.temp.push(i);
-	this.visited[i] = true;
-	var neighbours = this.getNeighbours(i);
-	var visitCount = this.countVisited(neighbours);
-	if(visitCount === neighbours.length){
-		this.components.push(this.temp);
-		this.temp = [ ];
+Graph.prototype.allDone = function(){
+	return (this.getNext() === -1);
+};
+
+Graph.prototype.doNext = function(){
+	var next, top, neighbours;
+	next = this.getNext();
+	this.stack.push(next);
+	this.visited[next] = true;
+	this.temp = [ ];
+	var n = 0;
+	while(!this.stack.isEmpty() && n < 10){
+		top = this.stack.pop();
+		this.temp.push(top);
+		this.visited[top] = true;
+		neighbours  = this.getNeighbours(top);
+		neighbours = Utils.remove(neighbours, Utils.match(this.visited, true));
+		this.stack.addAll(Utils.reverse(neighbours));
+		n++;
 	}
-	else{
-		this.visitArray(neighbours);
-	}
+	this.components.push(this.temp);
 };
 
 Graph.prototype.getConnected = function(){
-	var all = Utils.fillFrom(0, this.num - 1);
-	this.visitArray(all);
+	this.temp = [ ];
+	this.components = [ ];
+	this.stack = new NoRepeatStack();
+	this.visited = Utils.fillConstant(false, this.num);
+	var k = 0 ;
+	while(!this.allDone() && k < 10){
+		this.doNext();
+		k++;
+	}
 	return this.components;
 };
-
-Graph.prototype.visitArray = function(arr){
-	for(var i = 0; i <= arr.length - 1;i++){
-		if(!this.visited[arr[i]]){
-			this.visit(arr[i]);
-		}
-	}
-};
-
