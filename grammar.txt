@@ -1,0 +1,26 @@
+start
+  = additive
+
+
+additive
+  = left:multiplicative "+" right:additive { return left+"<mo>+</mo>"+right; }
+  / left:multiplicative "-" right:additive { return left+"<mo>-</mo>"+right; }
+  / multiplicative
+
+
+multiplicative
+  = left:primary "*" right:multiplicative { return left +" <mo>*</mo> "+ right; }
+  / left:primary "/" right:multiplicative { return "<mfrac><mrow>"+left +"</mrow><mrow>"+ right+"</mrow></mfrac>"; } 
+  / primary
+ 
+
+
+primary
+  = integer
+  / "(" additive:additive ")" { return additive; }
+  / "{" additive:additive "}" { return additive; }
+
+
+integer "integer"
+  = digits:[0-9]+ { return "<mn>"+parseInt(digits.join(""), 10)+"</mn>"; }
+    / ("-") digits:[0-9]+ { return "<mn>-"+parseInt(digits.join(""), 10)+"</mn>"; } 
