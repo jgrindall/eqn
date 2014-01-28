@@ -1,17 +1,43 @@
 <html>
 	<head>
-		<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+		<script src="jquery-1.9.1.js"></script>
 		<script src="utils.js"></script>
 		<script src="rect.js"></script>
 		<script src="matcher.js"></script>
 		<script src="graph.js"></script>
+		<script src="sketch.js"></script>
+		<script src="parser.js"></script>
+		<script src="stack.js"></script>
+		
+		<style>
+			ul, il{
+				list-style-type:none;
+			}
+			td{
+				padding:5px;
+			}
+			#mathmltext, #mathml{
+				height:40px;
+			}
+			#numbers{
+				position:absolute;
+				top:100px;
+				left:3px;
+			}
+			.num{
+				width:10px;
+				height:10px;
+				font-size:10px;
+			}
+		</style>
 	</head>
 	
 	<body>
 		
 		<script>
 			
-			var eqn, matcher;
+			var eqn, sketch;
+			
 			
 			var Eqn = function(canvas){
 				console.log("canvas "+canvas);
@@ -24,35 +50,43 @@
 			
 			Eqn.BLACK = 0.5;
 			
-			Eqn.SIZE0 = 64;
+			Eqn.MAXSIZE = 12;
 			
-			$(document).ready(function(){
-				eqn = new Eqn(document.getElementById('mycanvas'));
-				matcher = new Matcher();
-				eqn.init();
-			});
-			
-			Eqn.prototype.init = function(){
-				this.loadImage();
+			Eqn.prototype.processCanvas = function(){
+				var s = this.canvas.linearise();
+				console.log("LINEARISED TO "+s);
+				try{
+					var output = Parser.parse(s);
+					$("#mathmltext").text(output);
+					output = "<math xmlns='http://www.w3.org/1998/Math/MathML' display='block'>"+output+"</math>";
+					$("#mathml").html(output);
+					return true;
+				}
+				catch(e){
+					console.log("error "+e.message);
+					$("#mathml").html("?");
+					return false;
+				}
 			};
 			
-			Eqn.prototype.imageLoaded = function(){
-				this.context.drawImage(this.imageObj, 0, 0);
-				this.imgData = ( this.context.getImageData(0, 0, Eqn.SIZE0, Eqn.SIZE0) ).data;
+			Eqn.prototype.process = function(){
+				this.getCanvas();
+				var ok = this.processCanvas();
+				if(!ok){
+					console.log("NOPE");
+					
+				}
+			};
+			
+			Eqn.prototype.getCanvas = function(){
+				this.imgData = ( this.context.getImageData(0, 0, 300, 300) ).data;
 				this.getPixels();
-				var bounds = {x:0, y:0, w:Eqn.SIZE0, h:Eqn.SIZE0};
-				new Canvas(bounds, this.data);
-			};
-			
-			Eqn.prototype.loadImage = function(){
-				this.imageObj = new Image();
-				this.imageObj.onload = $.proxy(this.imageLoaded, this);
-				this.imageObj.src = "img0.png";
+				this.canvas = new Canvas({x:0, y:0, w:300, h:300}, this.data, this.context);
 			};
 			
 			Eqn.prototype.getPixel = function(x, y){
 				var index, r, g, b, clr, alpha, black;
-				index = (x + y * Eqn.SIZE0) * 4;
+				index = (x + y * 300) * 4;
 				r = this.imgData[index] / 255;
 				g = this.imgData[index + 1] / 255;
 				b = this.imgData[index + 2] / 255;
@@ -72,25 +106,152 @@
 				return black;
 			};
 			
+			Eqn.prototype.clear = function(){
+				sketch.clear();
+				this.context.clearRect(0,0,300,300);
+				$("#numbers").empty();
+			};
+			
+			Eqn.prototype.train = function(symbol){
+				this.getCanvas();
+				var childData = this.canvas.children[0].data;
+				var matcher = new Matcher(childData);
+				var w = childData.length;
+				var h = childData[0].length;
+				var div = Math.max(1, Math.max(w/Eqn.MAXSIZE, h/Eqn.MAXSIZE));
+				var dw = Math.max(Math.round(w/div), 1);
+				var dh = Math.max(Math.round(h/div), 1);
+				var discrete = matcher.getDiscreteData(dw, dh);
+				var obj = {"symbol":symbol,"data":discrete};
+				console.log("added "+JSON.stringify(obj));
+				Matcher.KEYS.push(obj);
+				setTimeout($.proxy(this.clear, this), 500);
+			};
+			
+			Eqn.prototype.t1 = function(){
+				this.train(Matcher.NUM1);
+			};
+			
+			Eqn.prototype.tplus = function(){
+				this.train(Matcher.PLUS);
+			};
+			
+			Eqn.prototype.tminus = function(){
+				this.train(Matcher.MINUS);
+			};
+			
+			Eqn.prototype.t2 = function(){
+				this.train(Matcher.NUM2);
+			};
+			
+			Eqn.prototype.tfrac = function(){
+				this.train(Matcher.HLINE);
+			};
+			
 			Eqn.prototype.getPixels = function(){
-				for(i = 0; i <= Eqn.SIZE0 - 1; i++){
+				for(i = 0; i <= 300 - 1; i++){
 					if(!this.data[i]){
 						this.data[i] = [ ];
 					}
-					for(j = 0; j <= Eqn.SIZE0 - 1; j++){
+					for(j = 0; j <= 300 - 1; j++){
 						this.data[i][j] = this.getPixel(i, j);
 					}
 				}
 			};
 			
+			
+			var start = function(){
+				sketch = $('#simple_sketch').sketch();
+				sketch = $('#simple_sketch').sketch();
+				eqn = new Eqn(document.getElementById('simple_sketch'));
+				$("#process").click($.proxy(eqn.process, eqn));
+				$("#clear").click($.proxy(eqn.clear, eqn));
+				$("#t1").click($.proxy(eqn.t1, eqn));
+				$("#t2").click($.proxy(eqn.t2, eqn));
+				$("#tplus").click($.proxy(eqn.tplus, eqn));
+				$("#tminus").click($.proxy(eqn.tminus, eqn));
+				$("#tfrac").click($.proxy(eqn.tfrac, eqn));
+				$('#simple_sketch').on("mouseup", $.proxy(eqn.process, eqn));
 				
+			};
+			
+			$(document).ready(function(){
+				
+				start();
+			});
+			
+			
 		</script>
 		
-		<canvas id="mycanvas" width="64" height="64"></canvas>
+	
+		<div id="mathmltext">
+		</div>
+		
+		<div id="mathml">
+		</div>
+		
+		<br/>
+		
+		
+		
+		
+		<div id="interactive">
+			
+			<div class="tools">
+			  <a href="#simple_sketch" data-tool="marker">Marker</a>
+			  <a href="#simple_sketch" data-tool="eraser">Eraser</a>
+			</div>
 
+			
+			<canvas id="simple_sketch" width="300" height="300" style="border:1px solid black;"></canvas>
+			
+			<div id="numbers"></div>
+			
+		</div>
+		
+		
+		<button id="process">Process</button>
+		
+		<button id="clear">Clear</button>
+		
+		<button id="t2">Train 2</button>
+		
+		<button id="tplus">Train Plus</button>
+		
+		<button id="tminus">Train Minus</button>
+		
+		<button id="t1">Train 1</button>
+		
+		<button id="tfrac">Train frac</button>
+		
+		<ul id="list">
+		</ul>
+		
 	</body>
 </html>
 
+
+<!--
+
+1)
+
+Look for fraction lines that are drawn badly
+
+Match bottom half of a rectangle with hline and re-set 
+
+2)
+
+detect long lines as you draw them and correct them there and then
+(yes)
+
+
+3)
+
+
+
+
+
+-->
 
 
 

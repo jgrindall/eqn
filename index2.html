@@ -1,0 +1,51 @@
+<html>
+	<head>
+		<script src="jquery-1.9.1.js"></script>
+		<script src="utils.js"></script>
+		<script src="rect.js"></script>
+		<script src="matcher.js"></script>
+		<script src="graph.js"></script>
+		<script src="sketch.js"></script>
+		<script src="parser.js"></script>
+		
+		<style>
+			ul, il{
+				list-style-type:none;
+			}
+			td{
+				padding:5px;
+			}
+		</style>
+	</head>
+	
+	<body>
+		
+		
+		<canvas id="simple_sketch" width="300" height="300" style="border:1px solid black;"></canvas>
+		
+		<script>
+			
+			var init = function(){
+				var canvas = document.getElementById('simple_sketch')
+				var context = canvas.getContext('2d');
+				context.lineWidth = 1;
+				context.strokeStyle = '#009900';
+				context.strokeRect(0,0,50,50);
+				context.strokeStyle = '#990000';
+				context.strokeRect(40,40,150,150);
+				
+			};
+			$(document).ready(init);
+				
+				
+		</script>
+		
+		
+		
+		
+	</body>
+</html>
+
+
+
+
