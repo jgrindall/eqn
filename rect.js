@@ -1,13 +1,14 @@
 
 /* Rect */
 
-var Rect = function(bounds, data){
-	if(arguments.length === 2){
-		this.bounds = bounds;
-		this.copyData(data);
-		this.match = matcher.match(this.bounds.w, this.bounds.h, this.data);
-		this.matched = (this.match.d < Matcher.TOLERANCE);
-	}
+var Rect = function(bounds, data, index){
+	this.bounds = bounds;
+	this.index = index;
+	this.copyData(data);
+	var matcher = new Matcher(this.data);
+	this.match = matcher.match();
+	this.matched = (this.match.d < Matcher.TOLERANCE);
+	console.log("match "+JSON.stringify(this.match));
 };
 
 Rect.prototype.copyData = function(data){
@@ -21,43 +22,44 @@ Rect.prototype.copyData = function(data){
 	}
 };
 
-Rect.prototype.columnFull = function(i){
-	for(j = 0; j <= this.bounds.h - 1;j++){
-		if(this.data[i][j]){
-			return true;
-		}
-	}
-	return false;
-};
-
-Rect.prototype.rectHasPoint = function(rect){
-	var i, j;
-	for(i = 0; i <= rect.w - 1; i++){
-		for(j = 0; j <= rect.h - 1; j++){
-			if(this.data[rect.x + i][rect.y + j]){
-				return true;
-			}
-		}
-	}
-	return false;
-};
-
-
-
-
 
 
 /* Canvas */
 
-var Canvas = function(bounds, data){
-	Rect.apply(this, arguments);
+var Canvas = function(bounds, data, context){
+	this.data = data;
+	this.bounds = bounds;
+	this.context = context;
 	this.getChildren();
+	this.highlight();
 	this.row = new Row( this.children );
-	console.log(this.row.linearise());
 };
 
-Canvas.prototype = Object.create(Rect.prototype);
-Canvas.prototype.constructor = Canvas;
+Canvas.prototype.linearise = function(){
+	return this.row.linearise();
+};
+
+
+Canvas.prototype.highlight = function(child){
+	this.context.lineWidth = 1;
+	var i, child, num, top, left;
+	$("#numbers").empty();
+	for(i = 0; i <= this.children.length - 1; i++){
+		child = this.children[i];
+		left = child.bounds.x;
+		top = child.bounds.y;
+		num = "<span class='num' style='position:absolute;top:"+top+"px;left:"+left+"px;'>"+i+"</span>";
+		$("#numbers").append(num);
+		if(child.matched){
+			this.context.strokeStyle = ['#00ff00','#00dd00','#00bb00','#009900','#007700','#005500','#003300','#001100'][i % 8];
+		}
+		else{
+			this.context.strokeStyle = ['#ff0000','#dd0000','#bb0000','#990000','#770000','#550000','#330000','#110000'][i % 8];
+		}
+		this.context.strokeRect(child.bounds.x,child.bounds.y,child.bounds.w,child.bounds.h);
+		
+	}
+};
 
 Canvas.prototype.getChildren = function(){
 	var left, child;
@@ -88,6 +90,19 @@ Canvas.prototype.findLeftPoint = function(){
 	return null;
 };
 
+Canvas.prototype.rectHasPoint = function(rect){
+	var i, j;
+	for(i = 0; i <= rect.w - 1; i++){
+		for(j = 0; j <= rect.h - 1; j++){
+			if(this.data[rect.x + i][rect.y + j]){
+				return true;
+			}
+		}
+	}
+	return false;
+};
+
+
 Canvas.prototype.pointInChild = function(p, child){
 	var inx = ( (p.x <= child.bounds.x + child.bounds.w) && (p.x >= child.bounds.x) );
 	var iny = ( (p.y <= child.bounds.y + child.bounds.h) && (p.y >= child.bounds.y) );
@@ -103,41 +118,52 @@ Canvas.prototype.pointInAnyChild = function(p){
 	return false;
 };
 
+	
+Canvas.prototype.getData = function(){
+	
+};
+
 Canvas.prototype.getChild = function(p){
 	var box = this.getBoundingBox(p);
 	if(box.w === this.bounds.w && box.h === this.bounds.h){
 		return null;
 	}	
 	var bounds = {x:box.x, y:box.y, w:box.w, h:box.h};
-	return new Rect(bounds, this.data);
+	return new Rect(bounds, this.data, this.children.length);
 };
 
 Canvas.prototype.getBoundingBox = function(p){
 	var r = {x : p.x,   y : p.y,   w : 1,   h : 1};
 	var complete = false;
 	while(!complete){
+		//console.log("r is "+JSON.stringify(r));
 		complete = true;
 		if(this.rightBorder(r)){
+			//console.log("rb");
 			r.w = r.w + 1;
 			complete = false;
 		}
 		else if(this.topRight(r)){
+			//console.log("tr");
 			r.w = r.w + 1;
 			r.y = r.y - 1;
 			r.h = r.h + 1;
 			complete = false;
 		}
 		else if(this.bottomRight(r)){
+			//console.log("br");
 			r.w = r.w + 1;
 			r.h = r.h + 1;
 			complete = false;
 		}
 		else if(this.topBorder(r)){
+			//console.log("tb");
 			r.y = r.y - 1;
 			r.h = r.h + 1;
 			complete = false;
 		}
 		else if(this.bottomBorder(r)){
+			//console.log("bb");
 			r.h = r.h + 1;
 			complete = false;
 		}
@@ -171,7 +197,8 @@ Canvas.prototype.bottomRight = function(r){
 		return false;
 	}
 	else{
-		return this.rectHasPoint({x:r.x + r.w, y:r.y + 1, w:1, h:1});
+		//console.log("br check: "+JSON.stringify( {x:r.x + r.w, y:r.y + 1, w:1, h:1}  ));
+		return this.rectHasPoint({x:r.x + r.w, y:r.y + r.h + 1, w:1, h:1});
 	}
 };
 
@@ -272,7 +299,6 @@ Group.prototype.isMiddleY = function(child){
 
 var Row = function(children){
 	Group.call(this, children);
-	this.getAdj();
 	this.getCols();
 };
 
@@ -289,8 +315,9 @@ Row.prototype.linearise = function(){
 
 Row.prototype.getCols = function(){
 	this.cols = [ ];
-	var c, components, r, i, j;
-	components = new Graph(this.adj).getConnected();
+	var c, components, r, i, j, adj;
+	adj = this.getAdj();
+	components = new Graph(adj).getConnected();
 	for(i = 0; i <= components.length-1; i++){
 		r = [ ];
 		c = components[i];
@@ -299,18 +326,23 @@ Row.prototype.getCols = function(){
 		}
 		this.cols.push(new Column(r));
 	}
-	console.log(this.cols.length+" cols");
 };
 
 Row.prototype.getAdj = function(){
-	this.adj = [ ];
+	var adj = [ ];
 	for(var i = 0; i <= this.children.length-1;i++){
 		var r = [ ];
 		for(var j = 0; j <= this.children.length-1;j++){
-			r.push(this.overlaps(i, j));
+			if(i === j){
+				r.push(false);
+			}
+			else{
+				r.push(this.overlaps(i, j));
+			}
 		}
-		this.adj.push(r);
+		adj.push(r);
 	}
+	return adj;
 };
 
 
@@ -322,38 +354,47 @@ Row.prototype.getAdj = function(){
 
 var Column = function(children){
 	Group.call(this, children);
-	this.getFrac();
+	if(this.children.length >= 3){
+		this.getFrac();
+	}
 };
 
 Column.prototype = Object.create(Group.prototype);
 Column.prototype.constructor = Column;
 
+
 Column.prototype.linearise = function(){
+	var lin;
 	if(this.fraction){
-		return "{"+this.numerator.linearise()+"}/{"+this.denominator.linearise()+"}";
+		lin = "{"+this.numerator.linearise()+"}/{"+this.denominator.linearise()+"}";
 	}
 	else if(this.children.length === 1){
 		var child = this.children[0];
-		console.log("child to linearise "+JSON.stringify(child));
 		if(child.matched){
-			return child.match.symbol;
+			if(child.match.symbol === Matcher.HLINE){
+				lin = "-";
+			}
+			else{
+				lin = child.match.symbol;
+			}
 		}
 		else{
-			return "?";
+			lin = Matcher.UNKNOWN;
 		}
 	}
 	else{
-		return "?";
+		lin = Matcher.UNKNOWN;
 	}
+	return " |" + lin + "| ";
 };
 
 Column.prototype.getFrac = function(){
 	var i, child, n, d;
 	for(i = 0; i <= this.children.length - 1;i++){
 		child = this.children[i];
-		if(child.match.symbol === "-" && child.matched && child.bounds.w > 0.75*this.bounds.w && this.isMiddleY(child)){
-			n = this.numerator(child);
-			d = this.denominator(child);
+		if(child.match.symbol === Matcher.HLINE && child.matched && child.bounds.w > 0.75*this.bounds.w && this.isMiddleY(child)){
+			n = this.getNumerator(child);
+			d = this.getDenominator(child);
 			if(n.length >= 1 && d.length >= 1){
 				this.fraction = child;
 				this.numerator = new Row(n);
@@ -362,29 +403,40 @@ Column.prototype.getFrac = function(){
 			}
 		}			
 	}
+	// poach other chldren from other places.
+	
 };
 
 
-Column.prototype.numerator = function(line){
+Column.prototype.getNumerator = function(line){
 	var i, child, r = [ ], bottom;
+	console.log("look for numerator in "+JSON.stringify(this.children));
 	for(i = 0;i<=this.children.length - 1;i++){
 		child = this.children[i];
+		console.log("look for numerator in "+child.index);
 		bottom = child.bounds.y + child.bounds.h - 1;
 		if(bottom < line.bounds.y){
 			r.push(child);
 		}
 	}
+	console.log("GOT NUMERATOR "+JSON.stringify(r));
 	return r;
 };
 
-Column.prototype.denominator = function(line){
+Column.prototype.getDenominator = function(line){
 	var i, child, r = [ ], top;
+	console.log("look for denominator in "+JSON.stringify(this.children));
 	for(i = 0;i<=this.children.length - 1;i++){
 		child = this.children[i];
+		console.log("look for denominator in "+child.index);
 		top = child.bounds.y;
 		if(top > line.bounds.y + line.bounds.h - 1){
 			r.push(child);
 		}
 	}
+	console.log("GOT DENOMINATOR "+JSON.stringify(r));
 	return r;
 };
+
+
+
